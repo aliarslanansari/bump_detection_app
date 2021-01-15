@@ -27,6 +27,7 @@ export default function App() {
         console.log(locs.length);
         setFilteredFilms(locs);
       })
+      
       .catch((e) => {});
   };
 
