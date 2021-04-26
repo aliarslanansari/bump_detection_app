@@ -1,106 +1,204 @@
-import React, { useState } from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
-// import Autocomplete from "react-native-autocomplete-input"
+import React, { Component } from "react"
+import { Dimensions, StyleSheet, View, Text } from "react-native"
 import MapView from "react-native-maps"
-import debounce from "lodash/debounce"
-import { GOOGLE_MAPS_APIKEY } from "./Constants"
-import {Ionicons} from "@expo/vector-icons";
-import {Autocomplete, withKeyboardAwareScrollView} from "react-native-dropdown-autocomplete";
+import { Marker } from "react-native-maps"
+import * as Location from "expo-location"
+import MapViewDirections from "react-native-maps-directions"
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete"
 
+const { width, height } = Dimensions.get("window")
+const ASPECT_RATIO = width / height
+const LATITUDE = 37.3317876
+const LONGITUDE = -122.0054812
+const LATITUDE_DELTA = 0.000922
+const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO
 
-export default function App() {
-  // For Filtered Data
-  const [filteredFilms, setFilteredFilms] = useState([])
-  // For Selected Data
-  const [selectedValue, setSelectedValue] = useState({})
-  const [search, setSearch] = useState("")
+const GOOGLE_MAPS_APIKEY = "AIzaSyDVbMbdxEBeurNl_JGns9e_j5ONiZn8PoU"
 
-  const apiUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=mumbai-cafe&key=${GOOGLE_MAPS_APIKEY}`
+import { NativeModules } from "react-native"
+import CustomMarker from "./CustomMarker"
+const reactNativeVersion = NativeModules.PlatformConstants.reactNativeVersion
+const reactNativeVersionString = reactNativeVersion
+  ? `${reactNativeVersion.major}.${reactNativeVersion.minor}.${
+      reactNativeVersion.patch
+    }${reactNativeVersion.prerelease ? " pre-release" : ""}`
+  : ""
 
-  const findFilm = (search) => {
-    // Method called every time when we change the value of the input
-    fetch(
-      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${search}&key=${GOOGLE_MAPS_APIKEY}`
-    )
-      .then((res) => res.json())
-      .then((json) => {
-        const { results: locs } = json
-        console.log(locs.length)
-        setFilteredFilms(locs)
-      })
-
-      .catch((e) => {})
-  }
-
-  const debouncedCallback = debounce(findFilm, 1000)
-
-  // const {scrollToInput, onDropdownClose, onDropdownShow} = this.props;
-
-
-  return (
-    <View style={{flexDirection:'column',marginTop: 35, width:'100%' }}>
-      <Autocomplete
-        style={styles.input}
-
-        scrollToInput={(ev) => console.log(ev)}
-        handleSelectItem={(item, id) => this.handleSelectItem(item, id)}
-        // onDropdownClose={() => onDropdownClose()}
-        // onDropdownShow={() => onDropdownShow()}
-        renderIcon={() => (
-          <Ionicons
-            name="ios-add-circle-outline"
-            size={20}
-            color="#c7c6c1"
-            style={styles.plus}
-          />
-        )}
-        data={filteredFilms}
-        minimumCharactersCount={2}
-        highlightText
-        onChangeText={debouncedCallback}
-        valueExtractor={(item) => item.name}
-        rightContent
-        rightTextExtractor={(item) => item.properties}
-      />
-      <Text>{search}</Text>
-    </View>
-  )
-}
+const reactNativeMapsVersion = require("./node_modules/react-native-maps/package.json")
+  .version
+const reactNativeMapsDirectionsVersion = require("./node_modules/react-native-maps-directions/package.json")
+  .version
 
 const styles = StyleSheet.create({
-  autocompletesContainer: {
-    paddingTop: 0,
-    zIndex: 1,
-    width: "100%",
-    paddingHorizontal: 8,
-  },
-  input: { maxHeight: 40 },
-  inputContainer: {
-    display: "flex",
-    flexShrink: 0,
-    flexGrow: 0,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderColor: "#c7c6c1",
-    paddingVertical: 13,
-    paddingLeft: 12,
-    paddingRight: "5%",
-    width: "100%",
-    justifyContent: "flex-start",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  plus: {
+  versionBox: {
     position: "absolute",
-    left: 15,
-    top: 10,
+    bottom: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
-  map: {
-    height: 400,
-    flex: 1,
+  versionText: {
+    padding: 4,
+    backgroundColor: "#FFF",
+    color: "#000",
   },
 })
+
+class Example extends Component {
+  constructor(props) {
+    super(props)
+
+    this.state = {
+      coordinates: [
+        {
+          latitude: 20.9051019752265,
+          longitude: 74.77519690990448,
+          title: "Foo Place",
+          subtitle: "1234 Foo Drive",
+        },
+        {
+          latitude: 20.90344792624504,
+          longitude: 74.78311713784933,
+          title: "Foo Place",
+          subtitle: "1234 Foo Drive",
+        },
+      ],
+    }
+
+    this.mapView = null
+  }
+
+  onMapPress = (e) => {
+    console.log(JSON.stringify(e.nativeEvent, null, 2))
+    // this.setState({
+    //   coordinates: [...this.state.coordinates, e.nativeEvent.coordinate],
+    // })
+  }
+
+  onReady = (result) => {
+    this.mapView.fitToCoordinates(result.coordinates, {
+      edgePadding: {
+        right: width / 10,
+        bottom: height / 10,
+        left: width / 10,
+        top: height / 10,
+      },
+    })
+  }
+
+  onError = (errorMessage) => {
+    console.log(errorMessage)
+  }
+
+  setDistance(distance, duration_in_traffic) {
+    // console.log('setDistance');
+    this.setState({
+      distance: parseFloat(distance),
+      durationInTraffic: parseInt(duration_in_traffic),
+    })
+  }
+
+  componentDidMount() {
+    Location.installWebGeolocationPolyfill()
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        let lat = parseFloat(position.coords.latitude)
+        let long = parseFloat(position.coords.longitude)
+
+        let initialRegion = {
+          latitude: lat,
+          longitude: long,
+          latitudeDelta: LATITUDE_DELTA,
+          longitudeDelta: LONGITUDE_DELTA,
+        }
+
+        this.setState({ initialPosition: initialRegion })
+      },
+      (error) => alert(JSON.stringify(error)),
+      { enableHighAccuracy: true, timeout: 20000 }
+    )
+  }
+
+  render() {
+    return (
+      <View style={{ ...StyleSheet.absoluteFill, marginTop: 50 }}>
+        <GooglePlacesAutocomplete
+          placeholder="From Location"
+          onPress={(data, details = null) => {
+            // 'details' is provided when fetchDetails = true
+            console.log(data, details)
+          }}
+          query={{
+            key: GOOGLE_MAPS_APIKEY,
+            language: "en",
+          }}
+          styles={{
+            textInput: {
+              zIndex: 999999,
+              elevation: 3,
+              margin: 10,
+            },
+          }}
+        />
+        <GooglePlacesAutocomplete
+          placeholder="To Destination"
+          onPress={(data, details = null) => {
+            // 'details' is provided when fetchDetails = true
+            console.log(data, details)
+          }}
+          query={{
+            key: GOOGLE_MAPS_APIKEY,
+            language: "en",
+          }}
+          styles={{
+            textInput: {
+              top: -320,
+              zIndex: 3,
+              margin: 10,
+              elevation: 3,
+            },
+          }}
+        />
+        <MapView
+          initialRegion={this.state.initialPosition}
+          style={{ ...StyleSheet.absoluteFill, elevation: 0, zIndex: -10 }}
+          ref={(c) => (this.mapView = c)} // eslint-disable-line react/jsx-no-bind
+          onPress={this.onMapPress}>
+          {this.state.coordinates.map((coordinate, index) => (
+            <Marker key={`coordinate_${index}`} coordinate={coordinate} />
+          ))}
+          <MapViewDirections
+            origin={this.state.coordinates[0]}
+            destination={
+              this.state.coordinates[this.state.coordinates.length - 1]
+            }
+            waypoints={this.state.coordinates.slice(1, -1)}
+            mode="DRIVING"
+            apikey={GOOGLE_MAPS_APIKEY}
+            language="en"
+            strokeWidth={4}
+            strokeColor="red"
+            onStart={(params) => {
+              console.log(
+                `Started routing between "${params.origin}" and "${
+                  params.destination
+                }"${
+                  params.waypoints.length
+                    ? " using waypoints: " + params.waypoints.join(", ")
+                    : ""
+                }`
+              )
+            }}
+            onReady={this.onReady}
+            onError={(errorMessage) => {
+              console.log(errorMessage)
+            }}
+            resetOnChange={false}
+          />
+        </MapView>
+      </View>
+    )
+  }
+}
+
+export default Example
