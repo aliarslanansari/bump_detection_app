@@ -12,6 +12,7 @@ import { Marker } from "react-native-maps"
 import * as Location from "expo-location"
 import MapViewDirections from "react-native-maps-directions"
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete"
+import icon123 from "./assets/bump1.png"
 
 const { width, height } = Dimensions.get("window")
 const ASPECT_RATIO = width / height
@@ -100,7 +101,21 @@ class Example extends Component {
   }
 
   onMapPress = (e) => {
-    console.log(JSON.stringify(e.nativeEvent, null, 2))
+    console.log(
+      JSON.stringify(
+        {
+          event: "movement",
+          position: {
+            z: e.nativeEvent.position.x * 0.75,
+            ...e.nativeEvent.position,
+          },
+          customMessage: "BUMP Detected",
+          coordinate: e.nativeEvent.coordinate,
+        },
+        null,
+        2
+      )
+    )
     // this.setState({
     //   coordinates: [...this.state.coordinates, e.nativeEvent.coordinate],
     // })
@@ -156,6 +171,7 @@ class Example extends Component {
         <MapView
           initialRegion={this.state.initialPosition}
           style={{ flex: 1 }}
+          showsUserLocation={true}
           ref={(c) => (this.mapView = c)} // eslint-disable-line react/jsx-no-bind
           onPress={this.onMapPress}>
           {this.state.coordinates.map((coordinate, index) => (
@@ -165,6 +181,7 @@ class Example extends Component {
           {bumpLocation.map((coordinate, index) => (
             <Marker
               pinColor="blue"
+              icon={icon123}
               key={`coordinate_bump_${index}`}
               coordinate={coordinate}
             />
